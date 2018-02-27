@@ -27,6 +27,17 @@ exports.serveAssets = function(res, asset, callback) {
   })
 };
 
+ exports.loadingPage = function(res, callback) {
+  var page = `${archive.paths.siteAssets}/loading.html`;
+
+  fs.readFile(page, (error,data) => {
+    if (error){
+      throw error;
+    }
+    res.writeHead(302, this.headers);
+    res.end(data, 'utf-8');
+  });
+ };
 
 
 // As you progress, keep thinking about what helper functions you can put here!

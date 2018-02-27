@@ -1,6 +1,7 @@
 var path = require('path');
 var archive = require('../helpers/archive-helpers');
-var http = require('./http-helpers.js');
+var http = require('./http-helpers');
+var worker = require('../workers/htmlfetcher')
 // require more modules/folders here!
 
 exports.handleRequest = function (req, res) {
@@ -11,12 +12,41 @@ exports.handleRequest = function (req, res) {
       http.serveAssets(res, asset);
     }else{
        var asset = `${archive.paths.archivedSites}/${req.url}`;
-       http.serveAssets(res, asset, function(data){
-        res.end(data);
-      });
+       http.serveAssets(res, asset)
     }
   }
+  if(req.method === 'POST') {
+    req.on('data', (data) => {
+      console.log('data', data.toString());
+      var url = data.toString().slice(4);
+
+      res.writeHead(302, url);
+      archive.isUrlInList(url, (exists) => {
+        if (!exists) {
+          archive.addUrlToList(url, () =>{
+            http.loadingPage(res);
+            //archive.downloadUrls([url])
+            archive.isUrlArchived(url, (isTrue) => {
+              if(!isTrue){
+                worker.download(url);
+              }
+            })
+            //worker.download(url);
+          });
+        }else{
+          archive.isUrlArchived(url, (isTrue) => {
+            if(!isTrue){
+              worker.download(url)
+            }
+          })
+          var asset = `${archive.paths.archivedSites}/${url}`;
+          http.serveAssets(res, asset);
+        }
+      })
+    })
+  }
 };
+
 
 
 
